@@ -1,0 +1,31 @@
+name: Rule suggestion
+description: Suggest a change to how the planner places parts, sizes gates, or places vents.
+title: "[Rule] "
+labels: ["rule"]
+body:
+  - type: markdown
+    attributes:
+      value: The current rules are listed in docs/RULES.md. It helps to say which rule you mean.
+  - type: textarea
+    id: rule
+    attributes:
+      label: Which rule, and what should change?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why? What have you seen at the caster?
+      description: Experience, castings, a reference book or supplier sheet. Photos welcome.
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Does it apply to everything, or only some cases?
+      options:
+        - All metals and parts
+        - Only some metals
+        - Only some kinds of parts (flat pins, 3D miniatures, thin filigree…)
+        - Only some mold sizes or rubbers
+        - Not sure
