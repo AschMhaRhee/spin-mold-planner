@@ -1,0 +1,65 @@
+name: Casting report
+description: Share how a mold laid out with the planner actually cast. Good or bad, these reports are how the rules improve.
+title: "[Casting report] "
+labels: ["casting-report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing! Photos help the most: the mold half, plus castings straight out of the mold, before cleanup.
+        Please only share designs you have the right to show.
+  - type: dropdown
+    id: result
+    attributes:
+      label: How did it go?
+      options:
+        - Filled well, no changes needed
+        - Filled after I changed gates or vents
+        - Short fills I couldn't fix
+        - Other problem (porosity, cold shuts, flash, distortion…)
+    validations:
+      required: true
+  - type: input
+    id: metal
+    attributes:
+      label: Metal / alloy
+      placeholder: "e.g. lead-free Britannia pewter (92/7.75/0.25), Zamak 3, zinc spin alloy"
+    validations:
+      required: true
+  - type: input
+    id: mold
+    attributes:
+      label: Mold
+      placeholder: '9" silicone, 1" thick, brand/compound if you know it'
+  - type: textarea
+    id: settings
+    attributes:
+      label: Machine settings
+      description: Whatever you know. Leave blank what you don't.
+      placeholder: |
+        Pour temperature:
+        Spin speed (RPM):
+        Clamp pressure:
+        Spin time:
+        Warm-up spins before good castings:
+  - type: textarea
+    id: parts
+    attributes:
+      label: Parts in the mold
+      description: Type of part (flat pin, medallion, 3D miniature…), rough size and thickness.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what you changed
+      description: Which cavity numbers failed and where. Did you add vents, top-gate, enlarge a gate? What fixed it?
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: What should the planner have done differently?
+  - type: textarea
+    id: files
+    attributes:
+      label: Photos and the planner image
+      description: Drag photos and the saved planner image (Save image button) here.
