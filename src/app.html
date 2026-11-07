@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spin Mold Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f3f1ec; --panel:#fffdf9; --ink:#1f2328; --muted:#6a6f76; --line:#ddd8cf;
+  --accent:#b4532a; --accent2:#2f6f8f; --vent:#f08a24; --good:#2e8b57; --bad:#c0392b; --warn:#b7791f;
+  --rubber:#2a2c30;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 "IBM Plex Sans",system-ui,sans-serif}
+header{display:flex;align-items:center;gap:18px;padding:12px 20px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+header h1{font-size:17px;margin:0;font-weight:600;letter-spacing:.2px}
+header h1 span{color:var(--accent)}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{border:1px solid transparent;background:none;padding:7px 12px;border-radius:7px;font:inherit;color:var(--muted);cursor:pointer}
+nav button.on{background:var(--ink);color:#fff}
+nav button:hover:not(.on){border-color:var(--line);color:var(--ink)}
+.tag{margin-left:auto;color:var(--muted);font-size:12px}
+.tag a{color:var(--muted)}
+main{padding:16px 20px;max-width:1500px;margin:0 auto}
+.view{display:none}.view.on{display:block}
+.grid{display:grid;grid-template-columns:330px minmax(0,1fr);gap:16px;align-items:start}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:0 0 10px;font-weight:600}
+.card h3{font-size:15px;margin:0 0 8px}
+label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
+input[type=number],select,input[type=text]{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font:inherit;background:#fff;color:var(--ink)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.hint{font-size:12px;color:var(--muted)}
+.mono{font-family:"IBM Plex Mono",monospace}
+button.btn{border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:7px;padding:8px 12px;font:inherit;cursor:pointer;font-weight:500}
+button.btn.sec{background:#fff;color:var(--ink);border-color:var(--line)}
+button.btn.sec:hover{border-color:var(--ink)}
+button.btn.small{padding:4px 9px;font-size:12px}
+button.btn:disabled{opacity:.45;cursor:default}
+button.btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.drop{border:1.5px dashed #c8c1b4;border-radius:9px;padding:16px;text-align:center;color:var(--muted);cursor:pointer;background:#faf8f3}
+.drop.over{border-color:var(--accent);background:#fff4ee}
+.parts{margin-top:10px}
+.pitem{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px;background:#fff}
+.pitem .top{display:flex;align-items:center;gap:8px}
+.pitem .nm{font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pitem .x{border:none;background:none;color:var(--muted);cursor:pointer;font-size:16px}
+.pitem .meta{font-size:12px;color:var(--muted);margin:3px 0 6px}
+.pitem .ctl{display:grid;grid-template-columns:60px 1fr 1fr;gap:6px;align-items:end}
+.pitem .ctl label{margin:0 0 2px}
+.stage{position:relative;background:#e9e5dd;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.stage canvas{display:block;width:100%;height:auto;touch-action:none}
+.toolbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.toolbar .sp{flex:1}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:14px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:12px}
+td.num{font-family:"IBM Plex Mono",monospace;white-space:nowrap}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.stat b{display:block;font-size:18px;font-weight:600}
+.stat span{font-size:12px;color:var(--muted)}
+.note{border-left:3px solid var(--accent2);padding:6px 10px;margin:6px 0;background:#f6f9fb;border-radius:0 6px 6px 0}
+.note.bad{border-color:var(--bad);background:#fdf3f1}
+.note.warn{border-color:var(--warn);background:#fdf8ec}
+.note.good{border-color:var(--good);background:#f1f8f4}
+.steps{counter-reset:s;padding:0;margin:0;list-style:none}
+.steps li{counter-increment:s;position:relative;padding:4px 0 10px 34px}
+.steps li::before{content:counter(s);position:absolute;left:0;top:3px;width:24px;height:24px;border-radius:50%;background:var(--ink);color:#fff;font-size:12px;display:grid;place-items:center;font-weight:600}
+.steps b{display:block}
+.photos{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.photos img{width:72px;height:72px;object-fit:cover;border-radius:6px;border:2px solid transparent;cursor:pointer}
+.photos img.on{border-color:var(--accent)}
+.empty{padding:60px 20px;text-align:center;color:var(--muted)}
+.chk{display:flex;gap:7px;align-items:flex-start;font-size:13px;margin:5px 0;color:var(--ink)}
+.chk input{margin-top:3px}
+.seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg button{flex:1;border:none;background:#fff;padding:6px 8px;font:inherit;font-size:12px;cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:none}
+.seg button.on{background:var(--ink);color:#fff}
+input[type=range]{width:100%}
+.rules h3{margin-top:18px}
+.rules li{margin:4px 0}
+.metals td:last-child{width:34%}
+.metals td input{width:100%;padding:4px 6px;border:1px solid var(--line);border-radius:5px;font:inherit;font-size:12px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+.toast.on{opacity:1}
+.cols2{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px}
+@media(max-width:1100px){.cols2{grid-template-columns:1fr}}
+.zoomgrp{display:inline-flex;align-items:center;gap:4px;margin-left:6px}
+.zoomgrp .mono{min-width:46px;text-align:center;font-size:12px;color:var(--muted)}
+.why h3{margin:0 0 8px;font-size:15px}
+.why h4{margin:0 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+.why ul{margin:0 0 6px;padding-left:18px}.why li{margin:3px 0}
+.why ul.vl{list-style:none;padding-left:0}
+.whygrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px 18px}
+.vt{display:inline-grid;place-items:center;min-width:22px;height:20px;padding:0 4px;border-radius:10px;background:var(--vent);color:#1f2328;font:700 11px "IBM Plex Mono",monospace;margin-right:6px}
+.vt.g{background:#9aa3ad}
+.stage canvas{cursor:grab}
+.kbd{font-family:"IBM Plex Mono",monospace;font-size:11px;border:1px solid var(--line);border-radius:4px;padding:0 4px;background:#fff}
+</style>
+</head>
+<body>
+<header>
+  <h1>Spin Mold <span>Planner</span></h1>
+  <nav id="tabs">
+    <button data-v="plan" class="on">Plan a mold</button>
+    <button data-v="fix">Fix a mold</button>
+    <button data-v="metals">Metals</button>
+    <button data-v="rules">Rules of thumb</button>
+  </nav>
+  <div class="tag">Runs in your browser · nothing is uploaded · v__VERSION__ · <a href="__REPO_URL__" target="_blank" rel="noopener">Open source</a> · <a href="__REPO_URL__/issues/new?template=casting-report.yml" target="_blank" rel="noopener">Report a casting result</a></div>
+</header>
+<main>
+
+<!-- ================= PLAN ================= -->
+<section class="view on" id="v-plan">
+ <div class="grid">
+  <div>
+   <div class="card">
+    <h2>Models</h2>
+    <div class="drop" id="drop">Drop STL files here or <u>choose files</u><br><span class="hint">Each file = one model. Set how many copies go in the mold.</span></div>
+    <input type="file" id="file" accept=".stl" multiple hidden>
+    <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn sec small" id="loadExample">Load example parts</button>
+    </div>
+    <div class="parts" id="parts"></div>
+   </div>
+   <div class="card">
+    <h2>Mold &amp; metal</h2>
+    <div class="row">
+      <div><label>Mold diameter (in)</label><select id="moldDia"><option>7</option><option selected>9</option><option>10</option><option>12</option></select></div>
+      <div><label>Metal</label><select id="metal"></select></div>
+    </div>
+    <div class="row">
+      <div><label>Closest to centre (in)</label><input type="number" id="innerR" step="0.05" value="1.75"></div>
+      <div><label>Rim margin (in)</label><input type="number" id="rimMargin" step="0.05" value="0.625"></div>
+    </div>
+    <div class="row">
+      <div><label>Space between cavities (in)</label><input type="number" id="spacing" step="0.01" value="0.19"></div>
+      <div><label>Basin diameter (in)</label><input type="number" id="basinD" step="0.05" value="1.5"></div>
+    </div>
+    <div class="row">
+      <div><label>Spoke width (in)</label><input type="number" id="spokeW" step="0.01" value="0.2"></div>
+      <div><label>Gate length (in)</label><input type="number" id="gateLen" step="0.01" value="0.16"></div>
+    </div>
+    <p class="hint" style="margin:8px 0 0">Oster's beginner numbers are 2¾" from centre and ⅝" from the rim; experienced moldmakers go much closer. The defaults here are closer to a typical 9" pin mold.</p>
+    <div style="margin-top:12px;display:flex;gap:8px"><button class="btn" id="run" disabled>Lay out mold</button></div>
+   </div>
+  </div>
+  <div>
+   <div class="card">
+    <div class="toolbar">
+      <button class="btn sec small" id="rotL" title="Rotate selected (Shift+R)">⟲ 15°</button>
+      <button class="btn sec small" id="rotR" title="Rotate selected (R)">⟳ 15°</button>
+      <button class="btn sec small" id="delSel" title="Remove selected (Delete)">Remove</button>
+      <span class="zoomgrp"><button class="btn sec small" id="zOut" title="Zoom out">−</button><span id="zoomVal" class="mono">100%</span><button class="btn sec small" id="zIn" title="Zoom in">+</button><button class="btn sec small" id="zFit">Fit</button><button class="btn sec small" id="zSel" title="Zoom to the selected cavity">Zoom to selected</button></span>
+      <span class="sp"></span>
+      <label class="chk" style="margin:0"><input type="checkbox" id="showWhy" checked>Explain</label>
+      <label class="chk" style="margin:0"><input type="checkbox" id="showVents" checked>Vents</label>
+      <label class="chk" style="margin:0"><input type="checkbox" id="showNums" checked>Numbers</label>
+      <button class="btn small" id="exportPng" disabled>Save image</button>
+      <button class="btn sec small" id="copyList" disabled>Copy cut list</button>
+    </div>
+    <div class="stage"><canvas id="mold" width="1600" height="1600"></canvas></div>
+    <div class="legend">
+      <span><i style="background:#d9dde2"></i>Cavity (lighter = thicker)</span>
+      <span><i style="background:#9aa3ad"></i>Basin, spokes &amp; gates</span>
+      <span><i style="background:var(--vent)"></i>Vent wedge + channel</span>
+      <span><i style="background:#fff;border:2px solid var(--vent)"></i>Drill-through vent</span>
+      <span>Scroll or pinch to zoom · drag empty space to pan · click a cavity to see why · drag it to move</span>
+    </div>
+   </div>
+   <div class="card why" id="why"></div>
+   <div class="card" id="report"><div class="empty">Add models, then press <b>Lay out mold</b>.</div></div>
+  </div>
+ </div>
+</section>
+
+<!-- ================= FIX ================= -->
+<section class="view" id="v-fix">
+ <div class="grid">
+  <div>
+   <div class="card">
+    <h2>1 · The part</h2>
+    <select id="fixPart"><option value="">— load a model on the Plan tab or below —</option></select>
+    <div class="drop" id="fixDrop" style="margin-top:8px;padding:10px">Drop an STL here</div>
+    <input type="file" id="fixFile" accept=".stl" hidden>
+    <label>Metal</label><select id="fixMetal"></select>
+   </div>
+   <div class="card">
+    <h2>2 · Match it to your mold</h2>
+    <p class="hint" style="margin-top:0">Turn the part so it sits the way it does in the mold, with the <b>mold centre at the top</b>.</p>
+    <label>Rotation <span id="rotVal" class="mono"></span></label>
+    <input type="range" id="fixRot" min="-180" max="180" step="1" value="0">
+    <div class="row" style="margin-top:6px">
+      <button class="btn sec small" id="fixRotM">−90°</button>
+      <button class="btn sec small" id="fixRotP">+90°</button>
+    </div>
+    <label>How far the inner end sits from the centre (in)</label>
+    <input type="number" id="fixInner" value="1.75" step="0.05">
+    <h2 style="margin-top:14px">Photo underlay (optional)</h2>
+    <div class="drop" id="photoDrop" style="padding:10px">Drop photos of the mold / short casts</div>
+    <input type="file" id="photoFile" accept="image/*" multiple hidden>
+    <div class="photos" id="photos"></div>
+    <div id="photoCtl" style="display:none">
+      <label>Opacity</label><input type="range" id="phOp" min="0" max="1" step="0.05" value="0.6">
+      <label>Scale</label><input type="range" id="phSc" min="0.1" max="4" step="0.01" value="1">
+      <label>Rotate</label><input type="range" id="phRot" min="-180" max="180" step="1" value="0">
+      <p class="hint">Use the <b>Move photo</b> tool to drag it under the outline, then trace the short fill.</p>
+    </div>
+   </div>
+  </div>
+  <div>
+   <div class="card">
+    <h2>3 · Show what happened</h2>
+    <div class="toolbar">
+      <div class="seg" id="tools">
+        <button data-t="gate" class="on">Click where the gate is</button>
+        <button data-t="paint">Paint unfilled area</button>
+        <button data-t="erase">Erase</button>
+        <button data-t="photo">Move photo</button>
+        <button data-t="pan">Pan</button>
+      </div>
+      <span class="hint">Brush</span><input type="range" id="brush" min="0.5" max="6" step="0.25" value="2" style="width:90px">
+      <button class="btn sec small" id="clearPaint">Clear</button>
+      <span class="zoomgrp"><button class="btn sec small" id="fzOut">−</button><span id="fzVal" class="mono">100%</span><button class="btn sec small" id="fzIn">+</button><button class="btn sec small" id="fzFit">Fit</button></span>
+    </div>
+    <div class="cols2">
+      <div>
+        <div class="stage"><canvas id="fixCanvas" width="1200" height="1200"></canvas></div>
+        <div class="legend">
+          <span><i style="background:rgba(214,60,40,.7)"></i>Unfilled</span>
+          <span><i style="background:#2f6f8f"></i>Your gate</span>
+          <span><i style="background:var(--vent)"></i>Add vent here</span>
+          <span><i style="background:var(--good)"></i>Better gate spot</span>
+        </div>
+      </div>
+      <div>
+        <h3 style="margin-top:0">Other symptoms</h3>
+        <label class="chk"><input type="checkbox" data-s="porosity">Porosity, blowholes or shrink near the gate</label>
+        <label class="chk"><input type="checkbox" data-s="coldshut">Seams / cold shuts where metal met</label>
+        <label class="chk"><input type="checkbox" data-s="repeat">Same flaw in the same spot every spin</label>
+        <label class="chk"><input type="checkbox" data-s="warmup">Only fills after several warm-up spins</label>
+        <label class="chk"><input type="checkbox" data-s="flash">Flash on the parting line or in vents</label>
+        <label class="chk"><input type="checkbox" data-s="alloy">Just changed alloy or rubber</label>
+        <div id="diagOut" style="margin-top:12px"></div>
+      </div>
+    </div>
+   </div>
+   <div class="card" id="nextCard" style="display:none">
+    <h2>Next time: how to place this part</h2>
+    <div class="cols2">
+      <div><div class="stage"><canvas id="nextCanvas" width="1200" height="1200"></canvas></div><p class="hint">Scroll to zoom, drag to pan, double-click to reset.</p></div>
+      <div id="nextText"></div>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- ================= METALS ================= -->
+<section class="view" id="v-metals">
+ <div class="card">
+  <h2>Metal profiles</h2>
+  <p class="hint" style="margin-top:0">These drive part weights and gate sizing. Edit them to match your supplier's sheet; changes are kept in this browser. "Gate factor" scales the suggested gate: alloys with a short pasty range (zinc, Zamak, pure lead) freeze fast and need bigger gates than pewter.</p>
+  <table class="metals"><thead><tr><th>Metal</th><th>Density g/cm³</th><th>Solidus °F</th><th>Liquidus °F</th><th>Pour °F</th><th>Gate factor</th><th>Notes</th></tr></thead><tbody id="metalRows"></tbody></table>
+  <div style="margin-top:10px;display:flex;gap:8px"><button class="btn sec small" id="resetMetals">Reset to defaults</button></div>
+  <p class="hint">Sources: pewter values from a 92/7.75/0.25 Britannia alloy sheet (RotoMetals); zinc spin alloy from Belmont Metals' J1 sheet; Zamak 3 melting range from published alloy data. Zamak and lead pour ranges are estimates. Oster's rule: pour at least 50°F above liquidus, and the best pour temperature is the lowest one that gives good castings. Always check your rubber's rated temperature, since zinc alloys need high-temperature rubber.</p>
+ </div>
+</section>
+
+<!-- ================= RULES ================= -->
+<section class="view" id="v-rules">
+ <div class="card rules">
+  <h2>Rules the planner uses</h2>
+  <p class="hint">Condensed from Oster Pewter's <a href="https://osterpewter.com/pewter-rubber-mold-casting" target="_blank" rel="noopener">Principles of Centrifugal Rubber Mold Casting</a> (chapters 8–10). Read the original for the reasoning and drawings.</p>
+  <h3>How a cavity fills</h3>
+  <ul><li>Spin pushes metal to the <b>outer end first</b>; the cavity fills from the outside in. The side <b>nearest the centre fills last</b>, so that's where air gets trapped and where most flaws show up.</li></ul>
+  <h3>Placement</h3>
+  <ul>
+   <li>Balanced, symmetrical layout. Put heavier pieces opposite each other and as close to the centre as practical.</li>
+   <li>Beginner clearances: at least 2¾" from centre and ⅝" from the rim. Experienced moldmakers go closer.</li>
+   <li>Large, thin, flat designs distort under spin. Inspect castings before using one as a model for the next mold.</li>
+  </ul>
+  <h3>Gates</h3>
+  <ul>
+   <li>Gate into the <b>thickest section</b>, which shrinks most and freezes last. Never gate through a thin feature (a jump ring, a sword tip). It freezes first and cuts off the heavy section.</li>
+   <li>Prefer a flat surface and an inconspicuous spot. Use a narrow, tapered channel that ends in a thin slot.</li>
+   <li>Use as few gates as possible, ideally one. Multiple gates cause cold shuts.</li>
+   <li>Start small and enlarge after trial passes; you can't make a gate smaller. Short-pasty-range alloys need larger gates.</li>
+   <li>Pour considerably more metal than the cavities need, so the sprue and gates feed shrinkage.</li>
+  </ul>
+  <h3>Vents</h3>
+  <ul>
+   <li><b>Main vent:</b> on the line from the centre through the cavity's centre, at the wall nearest the centre.</li>
+   <li><b>Direct-gated cavities:</b> one vent on each side of the ingate at 45°.</li>
+   <li>Also vent narrow appendages that trap air (ears, legs, tails, points), spots that don't fill after warm-up spins, and spots that keep showing porosity.</li>
+   <li>Pie-wedge vent: three shallow scalpel cuts make a small triangle whose tip just touches the cavity wall. Then cut a shallow channel slightly toward the centre, turn sharply, and zig-zag out to the rim. Straight channels clog.</li>
+   <li>If gates are in the way, needle-drill through to the back of the mold half and channel to the rim on the back.</li>
+  </ul>
+  <h3>When a cavity won't fill: the fix order</h3>
+  <ol><li>Fix the venting.</li><li>Top-gate (cut a matching gate in the top half).</li><li>Enlarge the gate.</li><li>Don't add gates.</li></ol>
+  <p>To check whether venting is the problem, reverse the spin direction for a few passes. If the flaw moves, the venting is at fault.</p>
+  <h3>Help improve these rules</h3>
+  <p>This planner is open source, and the rules get better when casters share what happened. If a layout worked, or failed, <a href="__REPO_URL__/issues/new?template=casting-report.yml" target="_blank" rel="noopener">post a casting report</a> with photos and your settings. Think a rule is wrong? <a href="__REPO_URL__/issues/new?template=rule-suggestion.yml" target="_blank" rel="noopener">Suggest a change</a>. The full rule list, and where each rule lives in the code, is in <a href="__REPO_URL__/blob/main/docs/RULES.md" target="_blank" rel="noopener">docs/RULES.md</a>.</p>
+  <h3>What this tool can't know</h3>
+  <ul><li>Your machine speed, clamp pressure, mold temperature and rubber compound all change the result. Suggested gate sizes are <b>starting points</b>, sized from the part's thickness and width at the gate and the metal's gate factor. Always trial cast.</li>
+  <li>Miniatures (fully 3D parts) are laid out by their top-view footprint. The tool splits nothing between mold halves, so plan the parting line yourself.</li></ul>
+ </div>
+</section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>/*__ENGINE__*/</script>
+<script>/*__EXAMPLE__*/</script>
+<script>
+(() => {
+'use strict';
+const E = Engine, IN = 25.4;
+const $ = (s) => document.querySelector(s);
+const toast = (m) => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('on'), 2200); };
+const fmtIn = (mm) => (mm / IN).toFixed(2) + '"';
+const fmtMM = (mm, d = 1) => mm.toFixed(d) + ' mm';
+
+// ---------- metals (editable, stored locally) ----------
+const DEFAULT_METALS = JSON.parse(JSON.stringify(E.METALS));
+let METALS = loadMetals();
+function loadMetals() { try { const s = localStorage.getItem('smp-metals'); if (s) return Object.assign(JSON.parse(JSON.stringify(DEFAULT_METALS)), JSON.parse(s)); } catch (e) {} return JSON.parse(JSON.stringify(DEFAULT_METALS)); }
+function saveMetals() { try { localStorage.setItem('smp-metals', JSON.stringify(METALS)); } catch (e) {} }
+function fillMetalSelects() {
+  for (const id of ['#metal', '#fixMetal']) {
+    const sel = $(id), v = sel.value || 'pewter'; sel.innerHTML = '';
+    for (const k in METALS) { const o = document.createElement('option'); o.value = k; o.textContent = METALS[k].name; sel.appendChild(o); }
+    sel.value = METALS[v] ? v : 'pewter';
+  }
+}
+function renderMetalTable() {
+  const tb = $('#metalRows'); tb.innerHTML = '';
+  for (const k in METALS) {
+    const m = METALS[k], tr = document.createElement('tr');
+    const cell = (f, type = 'number', w) => { const td = document.createElement('td'); const i = document.createElement('input'); i.type = type; i.value = m[f]; if (type === 'number') i.step = 'any'; i.onchange = () => { m[f] = type === 'number' ? +i.value : i.value; saveMetals(); fillMetalSelects(); refreshParts(); }; td.appendChild(i); return td; };
+    tr.appendChild(cell('name', 'text')); tr.appendChild(cell('density')); tr.appendChild(cell('solidusF')); tr.appendChild(cell('liquidusF')); tr.appendChild(cell('pourF', 'text')); tr.appendChild(cell('gateFactor')); tr.appendChild(cell('note', 'text'));
+    tb.appendChild(tr);
+  }
+}
+$('#resetMetals').onclick = () => { METALS = JSON.parse(JSON.stringify(DEFAULT_METALS)); saveMetals(); renderMetalTable(); fillMetalSelects(); refreshParts(); toast('Metal profiles reset'); };
+
+// ---------- tabs ----------
+document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === 'v-' + b.dataset.v));
+  if (b.dataset.v === 'fix') { syncFixParts(); drawFix(); }
+});
+
+// ---------- part library ----------
+const lib = []; // {id, name, tris, part, qty, flat, units}
+let nextId = 1;
+function addSTL(name, buf) {
+  const tris = E.parseSTL(buf);
+  const it = { id: nextId++, name: name.replace(/\.stl$/i, ''), tris, qty: 4, flat: 'auto', units: 'mm' };
+  build(it);
+  // guess units: tiny = inches
+  if (Math.max(...it.part.dims) < 4) { it.units = 'in'; build(it); }
+  lib.push(it);
+  refreshParts(); syncFixParts();
+  return it;
+}
+function build(it) { it.part = E.analyze(it.tris, it.name, { flat: it.flat, scale: it.units === 'in' ? IN : 1 }); it.img = null; }
+function partImage(it) {
+  if (it.img) return it.img;
+  const p = it.part, c = document.createElement('canvas'); c.width = p.W; c.height = p.H;
+  const g = c.getContext('2d'), id = g.createImageData(p.W, p.H);
+  const dz = p.res * 1.6;
+  for (let y = 0; y < p.H; y++) for (let x = 0; x < p.W; x++) {
+    const i = y * p.W + x; if (!p.mask[i]) continue;
+    const t = p.th[i] / p.maxT;
+    let sh = 0; if (x > 0 && y > 0 && p.mask[i - 1 - p.W]) sh = (p.hTop[i] - p.hTop[i - 1 - p.W]) / dz;
+    sh = Math.max(-1, Math.min(1, sh));
+    const base = 95 + 140 * t, v = Math.max(0, Math.min(255, base + sh * 70));
+    id.data[i * 4] = v * 0.97; id.data[i * 4 + 1] = v * 0.99; id.data[i * 4 + 2] = v; id.data[i * 4 + 3] = 255;
+  }
+  g.putImageData(id, 0, 0); it.img = c; return c;
+}
+function grams(it, metalKey) { return it.part.vol / 1000 * METALS[metalKey].density; }
+function refreshParts() {
+  const box = $('#parts'); box.innerHTML = '';
+  const mk = $('#metal').value;
+  lib.forEach(it => {
+    const p = it.part, d = document.createElement('div'); d.className = 'pitem';
+    d.innerHTML = `<div class="top"><span class="nm" title="${esc(it.name)}">${esc(it.name)}</span><button class="x" title="Remove">×</button></div>
+      <div class="meta">${p.dims[0].toFixed(1)} × ${p.dims[1].toFixed(1)} × ${p.dims[2].toFixed(2)} mm · ${grams(it, mk).toFixed(1)} g ${METALS[mk].name.split(' ')[0].toLowerCase()} · max ${p.maxT.toFixed(2)} mm thick</div>
+      <div class="ctl"><div><label>Copies</label><input type="number" min="0" max="60" value="${it.qty}" class="q"></div>
+      <div><label>Lies flat on</label><select class="f"><option value="auto">Auto</option><option value="z">Z</option><option value="y">Y</option><option value="x">X</option></select></div>
+      <div><label>File units</label><select class="u"><option value="mm">mm</option><option value="in">inches</option></select></div></div>`;
+    d.querySelector('.x').onclick = () => { lib.splice(lib.indexOf(it), 1); refreshParts(); syncFixParts(); };
+    d.querySelector('.q').onchange = (e) => { it.qty = Math.max(0, Math.round(+e.target.value || 0)); };
+    const f = d.querySelector('.f'); f.value = it.flat; f.onchange = () => { it.flat = f.value; build(it); refreshParts(); };
+    const u = d.querySelector('.u'); u.value = it.units; u.onchange = () => { it.units = u.value; build(it); refreshParts(); };
+    box.appendChild(d);
+  });
+  $('#run').disabled = !lib.length;
+}
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function readFiles(files, cb) {
+  [...files].forEach(f => { if (!/\.stl$/i.test(f.name)) { toast(f.name + ' is not an STL'); return; } const r = new FileReader(); r.onload = () => { try { cb(addSTL(f.name, r.result)); } catch (e) { toast(e.message); } }; r.readAsArrayBuffer(f); });
+}
+function wireDrop(zone, input, cb) {
+  zone.onclick = () => input.click();
+  input.onchange = () => { cb(input.files); input.value = ''; };
+  zone.ondragover = (e) => { e.preventDefault(); zone.classList.add('over'); };
+  zone.ondragleave = () => zone.classList.remove('over');
+  zone.ondrop = (e) => { e.preventDefault(); zone.classList.remove('over'); cb(e.dataTransfer.files); };
+}
+wireDrop($('#drop'), $('#file'), (fs) => readFiles(fs, () => {}));
+$('#loadExample').onclick = async () => {
+  if (typeof EXAMPLES === 'undefined') return;
+  const btn = $('#loadExample'); btn.disabled = true;
+  try {
+    for (const ex of EXAMPLES) {
+      const bin = Uint8Array.from(atob(ex.b64), c => c.charCodeAt(0));
+      const ds = new DecompressionStream('gzip');
+      const buf = await new Response(new Blob([bin]).stream().pipeThrough(ds)).arrayBuffer();
+      const it = addSTL(ex.name, buf); it.qty = ex.qty;
+    }
+    refreshParts(); runLayout();
+  } catch (e) { toast('Could not load the example in this browser'); }
+};
+
+// ---------- layout + drawing ----------
+let L = null, sel = -1;
+const metalOf = () => METALS[$('#metal').value];
+function params() {
+  return {
+    moldDia: +$('#moldDia').value, innerR: +$('#innerR').value * IN, rimMargin: +$('#rimMargin').value * IN,
+    spacing: +$('#spacing').value * IN, basinR: +$('#basinD').value * IN / 2, spokeW: +$('#spokeW').value * IN,
+    gateLen: +$('#gateLen').value * IN, metalObj: metalOf(), metalKey: $('#metal').value
+  };
+}
+function runLayout() {
+  const items = lib.filter(it => it.qty > 0).map(it => ({ part: it.part, qty: it.qty, it }));
+  if (!items.length) { toast('Set at least one copy'); return; }
+  $('#run').disabled = true; $('#run').textContent = 'Working…';
+  setTimeout(() => {
+    try { L = E.layout(items, params()); L.items = items; sel = -1; mview.z = 1; mview.cx = mview.cy = 0; drawMold(); report(); }
+    catch (e) { console.error(e); toast('Layout failed: ' + e.message); }
+    $('#run').disabled = false; $('#run').textContent = 'Lay out mold';
+    $('#exportPng').disabled = $('#copyList').disabled = !L;
+  }, 20);
+}
+$('#run').onclick = runLayout;
+['#moldDia', '#metal', '#innerR', '#rimMargin', '#spacing', '#basinD', '#spokeW', '#gateLen'].forEach(id => $(id).addEventListener('change', () => { refreshParts(); if (L) runLayout(); }));
+$('#showVents').onchange = $('#showNums').onchange = $('#showWhy').onchange = () => drawMold();
+
+function itemFor(part) { return lib.find(it => it.part === part); }
+
+function drawLayout(ctx, size, Lx, opt = {}) {
+  const R = Lx.R, pad = size * 0.03, vw = opt.view || { z: 1, cx: 0, cy: 0 };
+  const S = (size / 2 - pad) / R * vw.z, OX = size / 2 - vw.cx * S, OY = size / 2 - vw.cy * S;
+  const P2 = (x, y) => [OX + x * S, OY + y * S];
+  const u = opt.u || size / 1050; // screen-constant unit for labels
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, size, size);
+  ctx.fillStyle = opt.bg || '#e9e5dd'; ctx.fillRect(0, 0, size, size);
+  ctx.beginPath(); ctx.arc(OX, OY, R * S, 0, 7); ctx.fillStyle = '#2a2c30'; ctx.fill();
+  ctx.lineWidth = Math.max(1, S * 0.4); ctx.strokeStyle = '#1b1c1f'; ctx.stroke();
+  ctx.setLineDash([S * 1.5, S * 1.5]); ctx.lineWidth = Math.max(1, S * 0.2); ctx.strokeStyle = 'rgba(255,255,255,.16)';
+  ctx.beginPath(); ctx.arc(OX, OY, (R - Lx.prm.rimMargin) * S, 0, 7); ctx.stroke();
+  ctx.beginPath(); ctx.arc(OX, OY, Lx.prm.innerR * S, 0, 7); ctx.stroke();
+  ctx.setLineDash([]);
+  const spoke = (inst) => {
+    const g = inst.gate; if (!g) return;
+    const ux = g.ux, uy = g.uy, tx = -uy, ty = ux, b = Lx.prm.basinR - 1, gs = Math.max(b, g.gStart), sw = Lx.prm.spokeW / 2, gw = g.slotW / 2;
+    const pts = [[b, -sw], [gs, -sw], [g.r + 0.15, -gw], [g.r + 0.15, gw], [gs, sw], [b, sw]];
+    ctx.fillStyle = '#9aa3ad';
+    ctx.beginPath(); pts.forEach((p, i) => { const q = P2(ux * p[0] + tx * p[1], uy * p[0] + ty * p[1]); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); }); ctx.closePath(); ctx.fill();
+  };
+  const cavity = (inst, k) => {
+    const it = itemFor(inst.part); if (!it) return;
+    const p = inst.part, P = inst.P;
+    ctx.setTransform(S * P.c, S * P.s, -S * P.s, S * P.c, OX + S * P.ox, OY + S * P.oy);
+    if (k === opt.sel || inst.bad) { ctx.shadowColor = inst.bad ? '#ff4b3a' : '#f3b27a'; ctx.shadowBlur = 14 * u; }
+    ctx.drawImage(partImage(it), -p.res / 2, -p.res / 2, p.W * p.res, p.H * p.res);
+    ctx.shadowBlur = 0; ctx.setTransform(1, 0, 0, 1, 0, 0);
+  };
+  for (const inst of Lx.placed) spoke(inst);
+  const basin = () => {
+    const gr = ctx.createRadialGradient(OX - Lx.prm.basinR * S * 0.3, OY - Lx.prm.basinR * S * 0.3, 2, OX, OY, Lx.prm.basinR * S);
+    gr.addColorStop(0, '#c9cfd6'); gr.addColorStop(1, '#7d858f');
+    ctx.beginPath(); ctx.arc(OX, OY, Lx.prm.basinR * S, 0, 7); ctx.fillStyle = gr; ctx.fill();
+  };
+  basin();
+  ctx.imageSmoothingEnabled = true;
+  Lx.placed.forEach(cavity);
+  if (opt.vents !== false) for (const inst of Lx.placed) for (const v of inst.vents || []) drawVent(ctx, v, P2, S);
+  // kind tags on every vent (export, or when zoomed in)
+  if (opt.vents !== false && (opt.kindTags || vw.z >= 2.2)) {
+    for (const inst of Lx.placed) for (const v of inst.vents || []) {
+      const L2 = v.drilled || !v.path ? 'D' : ({ gate: 'G', main: 'M', tip: 'P' })[v.kind];
+      const q = P2(v.x + v.dir[0] * 4.5, v.y + v.dir[1] * 4.5);
+      tag(ctx, q[0] + v.dir[0] * 12 * u, q[1] + v.dir[1] * 12 * u, L2, 11 * u, '#f08a24', '#1f2328');
+    }
+  }
+  if (opt.nums !== false) {
+    ctx.font = `600 ${Math.max(10, 22 * u * Math.min(2, Math.sqrt(vw.z)))}px "IBM Plex Sans",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    Lx.placed.forEach((inst, k) => {
+      const c = E.toW(inst.P, inst.part.cx, inst.part.cy), q = P2(c[0], c[1]), r = Math.max(8, 17 * u * Math.min(2, Math.sqrt(vw.z)));
+      ctx.beginPath(); ctx.arc(q[0], q[1], r, 0, 7); ctx.fillStyle = k === opt.sel ? '#b4532a' : 'rgba(31,35,40,.82)'; ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.fillText(String(k + 1), q[0], q[1] + 0.5);
+    });
+  }
+  // explain overlay for the selected cavity
+  if (opt.explain && opt.sel >= 0 && Lx.placed[opt.sel]) {
+    const inst = Lx.placed[opt.sel];
+    ctx.fillStyle = 'rgba(20,21,24,.55)'; ctx.fillRect(0, 0, size, size);
+    spoke(inst); basin(); cavity(inst, opt.sel);
+    for (const v of inst.vents || []) drawVent(ctx, v, P2, S);
+    const ex = E.explain(inst, Lx), cw = E.toW(inst.P, inst.part.cx, inst.part.cy), cq = P2(cw[0], cw[1]);
+    const items = [];
+    if (inst.gate) items.push({ at: P2(inst.gate.wx, inst.gate.wy), t: 'G', label: 'Gate · thickest section', col: '#9aa3ad' });
+    ex.vents.forEach((v, k) => { const vv = inst.vents[k]; items.push({ at: P2(vv.x, vv.y), t: v.tag, label: v.short, col: '#f08a24' }); });
+    // long axis arrow (inner → outer)
+    const fs = 15 * u;
+    callouts(ctx, items, cq, fs, u, size);
+    // number bubble
+    ctx.font = `600 ${22 * u}px "IBM Plex Sans",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.beginPath(); ctx.arc(cq[0], cq[1], 17 * u, 0, 7); ctx.fillStyle = '#b4532a'; ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillText(String(opt.sel + 1), cq[0], cq[1] + 0.5);
+    // fill-direction hint: along the radial line through the cavity, just beside it
+    const rc = Math.hypot(cw[0], cw[1]) || 1, d0 = [cw[0] / rc, cw[1] / rc], t0 = [-d0[1], d0[0]];
+    let rMin = 1e9, rMax = -1e9, tMax = -1e9;
+    for (const b of inst.part.bnd) { const w = E.toW(inst.P, b[0], b[1]), dx0 = w[0] - cw[0], dy0 = w[1] - cw[1]; const a = dx0 * d0[0] + dy0 * d0[1], t = dx0 * t0[0] + dy0 * t0[1]; rMin = Math.min(rMin, a); rMax = Math.max(rMax, a); tMax = Math.max(tMax, t); }
+    const gap = tMax + 10 * u / S;
+    const a0 = P2(cw[0] + d0[0] * rMax + t0[0] * gap, cw[1] + d0[1] * rMax + t0[1] * gap), a1 = P2(cw[0] + d0[0] * rMin + t0[0] * gap, cw[1] + d0[1] * rMin + t0[1] * gap);
+    const dx = a1[0] - a0[0], dy = a1[1] - a0[1], dl = Math.hypot(dx, dy) || 1, nx = -dy / dl, ny = dx / dl, side = 1;
+    ctx.strokeStyle = '#ffe9a8'; ctx.fillStyle = '#ffe9a8'; ctx.lineWidth = 2.5 * u; ctx.setLineDash([7 * u, 5 * u]);
+    ctx.beginPath(); ctx.moveTo(a0[0], a0[1]); ctx.lineTo(a1[0], a1[1]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(a1[0], a1[1]); ctx.lineTo(a1[0] - dx / dl * 12 * u + nx * 6 * u, a1[1] - dy / dl * 12 * u + ny * 6 * u); ctx.lineTo(a1[0] - dx / dl * 12 * u - nx * 6 * u, a1[1] - dy / dl * 12 * u - ny * 6 * u); ctx.closePath(); ctx.fill();
+    const tsx = t0[0], tsy = t0[1];
+    ctx.save(); ctx.translate((a0[0] + a1[0]) / 2 + tsx * 12 * u, (a0[1] + a1[1]) / 2 + tsy * 12 * u);
+    let ang = Math.atan2(dy, dx); if (ang > Math.PI / 2 || ang < -Math.PI / 2) ang += Math.PI;
+    ctx.rotate(ang); ctx.font = `500 ${13 * u}px "IBM Plex Sans",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('fills outside → in', 0, 0); ctx.restore();
+  }
+  ctx.restore();
+  return { S, OX, OY };
+}
+function tag(ctx, x, y, t, r, bg, fg) {
+  ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fillStyle = bg; ctx.fill();
+  ctx.font = `700 ${r * 1.15}px "IBM Plex Sans",sans-serif`; ctx.fillStyle = fg; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, x, y + 0.5);
+}
+function callouts(ctx, items, cq, fs, u, size) {
+  // place a label for each item, pushed away from the cavity centre, then nudged apart
+  ctx.font = `500 ${fs}px "IBM Plex Sans",sans-serif`;
+  const boxes = items.map(it => {
+    let dx = it.at[0] - cq[0], dy = it.at[1] - cq[1]; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
+    const w = ctx.measureText(it.label).width + fs * 2.6, h = fs * 1.9;
+    const x = it.at[0] + dx * 60 * u, y = it.at[1] + dy * 60 * u;
+    return { it, x, y, w, h, dx };
+  });
+  for (let pass = 0; pass < 40; pass++) {
+    for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+      const a = boxes[i], b = boxes[j];
+      const ox = (a.w + b.w) / 2 - Math.abs(a.x - b.x), oy = (a.h + b.h) / 2 + 3 * u - Math.abs(a.y - b.y);
+      if (ox > 0 && oy > 0) { const s = a.y < b.y ? -1 : 1; a.y += s * oy / 2; b.y -= s * oy / 2; }
+    }
+  }
+  for (const b of boxes) {
+    b.x = Math.max(b.w / 2 + 4, Math.min(size - b.w / 2 - 4, b.x)); b.y = Math.max(b.h / 2 + 4, Math.min(size - b.h / 2 - 4, b.y));
+    ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 1.5 * u;
+    ctx.beginPath(); ctx.moveTo(b.it.at[0], b.it.at[1]); ctx.lineTo(b.x, b.y); ctx.stroke();
+    const x0 = b.x - b.w / 2, y0 = b.y - b.h / 2;
+    ctx.fillStyle = 'rgba(255,253,249,.96)'; roundRect(ctx, x0, y0, b.w, b.h, 6 * u); ctx.fill();
+    tag(ctx, x0 + fs * 1.1, b.y, b.it.t, fs * 0.8, b.it.col, '#1f2328');
+    ctx.fillStyle = '#1f2328'; ctx.font = `500 ${fs}px "IBM Plex Sans",sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(b.it.label, x0 + fs * 2.2, b.y + 0.5);
+  }
+}
+function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function drawVent(ctx, v, P2, S) {
+  const col = '#f08a24';
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineJoin = 'miter';
+  const a = [v.x, v.y], d = v.dir, n = [-d[1], d[0]];
+  // pie wedge
+  const b1 = [a[0] + d[0] * 3 + n[0] * 0.8, a[1] + d[1] * 3 + n[1] * 0.8], b2 = [a[0] + d[0] * 3 - n[0] * 0.8, a[1] + d[1] * 3 - n[1] * 0.8];
+  ctx.beginPath(); [a, b1, b2].forEach((p, i) => { const q = P2(p[0], p[1]); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); }); ctx.closePath(); ctx.fill();
+  if (v.drilled || !v.path) {
+    const q = P2(a[0] + d[0] * 4.2, a[1] + d[1] * 4.2);
+    ctx.lineWidth = Math.max(1.5, S * 0.35); ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(q[0], q[1], Math.max(3, S * 0.9), 0, 7); ctx.fill(); ctx.stroke();
+    return;
+  }
+  // zig-zag channel along path (skip first segment = wedge)
+  const pts = zig(v.path.slice(1), 1.3, 0.45);
+  ctx.lineWidth = Math.max(1, S * 0.22);
+  ctx.beginPath(); pts.forEach((p, i) => { const q = P2(p[0], p[1]); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); }); ctx.stroke();
+}
+function zig(path, step, amp) {
+  const out = []; let side = 1;
+  for (let i = 0; i < path.length - 1; i++) {
+    const a = path[i], b = path[i + 1], L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L < 1e-6) continue;
+    const d = [(b[0] - a[0]) / L, (b[1] - a[1]) / L], n = [-d[1], d[0]];
+    const k = Math.max(1, Math.round(L / step));
+    if (i === 0) out.push(a);
+    for (let s = 1; s <= k; s++) {
+      const t = s / k; const m = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+      const last = (i === path.length - 2 && s === k);
+      out.push(last ? m : [m[0] + n[0] * amp * side, m[1] + n[1] * amp * side]); side = -side;
+    }
+  }
+  return out;
+}
+const moldCv = $('#mold'), mctx = moldCv.getContext('2d');
+let view = null;
+function drawMold() {
+  if (!L) { mctx.fillStyle = '#e9e5dd'; mctx.fillRect(0, 0, moldCv.width, moldCv.height); const R = +$('#moldDia').value * IN / 2; drawLayout(mctx, moldCv.width, { R, prm: params(), placed: [] }); return; }
+  view = drawLayout(mctx, moldCv.width, L, { sel, vents: $('#showVents').checked, nums: $('#showNums').checked, explain: $('#showWhy').checked, view: mview, u: moldCv.width / (moldCv.clientWidth || moldCv.width) * 0.95 });
+  $('#zoomVal').textContent = Math.round(mview.z * 100) + '%';
+  whyPanel();
+}
+function whyPanel() {
+  const box = $('#why'); if (!L) { box.innerHTML = ''; return; }
+  let h = '';
+  if (sel >= 0 && L.placed[sel]) {
+    const inst = L.placed[sel], ex = E.explain(inst, L);
+    h += `<h3>Why #${sel + 1} (${esc(inst.part.name)}) is set up this way</h3><div class="whygrid">`;
+    const sec = (t, arr) => arr.length ? `<div><h4>${t}</h4><ul>${arr.map(s => `<li>${esc(s)}</li>`).join('')}</ul></div>` : '';
+    h += sec('Orientation', ex.orient) + sec('Position', ex.place);
+    h += `<div><h4><span class="vt g">G</span> Gate</h4><ul>${ex.gate.map(s => `<li>${esc(s)}</li>`).join('')}</ul></div>`;
+    if (ex.vents.length) h += `<div><h4>Vents</h4><ul class="vl">${ex.vents.map(v => `<li><span class="vt">${v.tag}</span>${esc(v.text)}</li>`).join('')}</ul></div>`;
+    h += `</div><p class="hint">Click empty space to deselect. Drag to move it, or press R to rotate. The gate and vents update to match.</p>`;
+  } else {
+    h += `<h3>Why the mold is laid out this way</h3><ul>${E.explainLayout(L).map(s => `<li>${esc(s)}</li>`).join('')}</ul><p class="hint"><b>Click any cavity</b> to see the reasoning for its orientation, position, gate and each vent. Zoom in to see vent tags: <b>G</b> gate vent, <b>M</b> main vent, <b>P</b> point vent, <b>D</b> drill-through.</p>`;
+  }
+  box.innerHTML = h;
+}
+// interaction: select/drag cavities, pan empty space, wheel/pinch zoom
+const mview = { z: 1, cx: 0, cy: 0 };
+let drag = null;
+const ptrs = new Map();
+function canvasXY(cv, e) { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * cv.width, (e.clientY - r.top) / r.height * cv.height]; }
+function evW(e) { const [x, y] = canvasXY(moldCv, e); return [(x - view.OX) / view.S, (y - view.OY) / view.S]; }
+function zoomAt(vw, cv, sx, sy, f, vObj, redraw) {
+  const nz = Math.max(1, Math.min(24, vw.z * f)); if (nz === vw.z) return;
+  const wx = (sx - vObj.OX) / vObj.S, wy = (sy - vObj.OY) / vObj.S, S0 = vObj.S / vw.z, S1 = S0 * nz;
+  // keep world point under cursor fixed: sx = size/2 + (wx - cx)*S1
+  vw.cx = wx - (sx - cv.width / 2) / S1; vw.cy = wy - (sy - cv.height / 2) / S1; vw.z = nz;
+  if (nz === 1) { vw.cx = 0; vw.cy = 0; }
+  redraw();
+}
+moldCv.addEventListener('wheel', (e) => { if (!view) return; e.preventDefault(); const [x, y] = canvasXY(moldCv, e); zoomAt(mview, moldCv, x, y, Math.exp(-e.deltaY * 0.0015), view, drawMold); }, { passive: false });
+moldCv.addEventListener('pointerdown', (e) => {
+  if (!view) return;
+  ptrs.set(e.pointerId, canvasXY(moldCv, e)); moldCv.setPointerCapture(e.pointerId);
+  if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; drag = { pinch: Math.hypot(a[0] - b[0], a[1] - b[1]) }; return; }
+  const w = evW(e); let hit = -1;
+  if (L) for (let k = L.placed.length - 1; k >= 0; k--) { const i = L.placed[k], l = E.toL(i.P, w[0], w[1]); if (i.part.at(l[0], l[1])) { hit = k; break; } }
+  if (hit >= 0) { sel = hit; drag = { k: hit, w, ox: L.placed[hit].P.ox, oy: L.placed[hit].P.oy, moved: false }; }
+  else drag = { pan: canvasXY(moldCv, e), cx: mview.cx, cy: mview.cy, moved: false };
+  drawMold();
+});
+moldCv.addEventListener('pointermove', (e) => {
+  if (!drag) return;
+  if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, canvasXY(moldCv, e));
+  if (drag.pinch && ptrs.size === 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); zoomAt(mview, moldCv, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, d / drag.pinch, view, drawMold); drag.pinch = d; return; }
+  if (drag.pan) {
+    const p = canvasXY(moldCv, e), dx = p[0] - drag.pan[0], dy = p[1] - drag.pan[1];
+    if (Math.hypot(dx, dy) > 4) drag.moved = true;
+    if (mview.z > 1) { mview.cx = drag.cx - dx / view.S; mview.cy = drag.cy - dy / view.S; drawMold(); }
+    return;
+  }
+  if (drag.k == null) return;
+  const w = evW(e), P = L.placed[drag.k].P;
+  if (!drag.moved && Math.hypot(w[0] - drag.w[0], w[1] - drag.w[1]) * view.S < 5) return;
+  drag.moved = true;
+  P.ox = drag.ox + w[0] - drag.w[0]; P.oy = drag.oy + w[1] - drag.w[1];
+  L.placed[drag.k].vents = []; L.placed[drag.k].gate = null; drawMold();
+});
+const endPtr = (e) => {
+  ptrs.delete(e.pointerId);
+  if (!drag) return;
+  const d = drag; drag = null;
+  if (d.pan && !d.moved) { sel = -1; drawMold(); }
+  if (d.k != null && d.moved) { E.refresh(L); drawMold(); report(); }
+};
+moldCv.addEventListener('pointerup', endPtr); moldCv.addEventListener('pointercancel', endPtr);
+$('#zIn').onclick = () => view && zoomAt(mview, moldCv, moldCv.width / 2, moldCv.height / 2, 1.5, view, drawMold);
+$('#zOut').onclick = () => view && zoomAt(mview, moldCv, moldCv.width / 2, moldCv.height / 2, 1 / 1.5, view, drawMold);
+$('#zFit').onclick = () => { mview.z = 1; mview.cx = mview.cy = 0; drawMold(); };
+$('#zSel').onclick = () => {
+  if (!L || sel < 0) { toast('Click a cavity first'); return; }
+  const i = L.placed[sel], c = E.toW(i.P, i.part.cx, i.part.cy);
+  mview.z = Math.min(24, (L.R * 2) / (i.part.len * 1.9)); mview.cx = c[0]; mview.cy = c[1]; drawMold();
+};
+function rotateSel(deg) {
+  if (!L || sel < 0) { toast('Click a cavity first'); return; }
+  const inst = L.placed[sel], P = inst.P, c = E.toW(P, inst.part.cx, inst.part.cy);
+  const th = P.theta + deg * Math.PI / 180, np = E.pose(th, 0, 0), c2 = E.toW(np, inst.part.cx, inst.part.cy);
+  inst.P = E.pose(th, c[0] - c2[0], c[1] - c2[1]);
+  E.refresh(L); drawMold(); report();
+}
+$('#rotL').onclick = () => rotateSel(-15); $('#rotR').onclick = () => rotateSel(15);
+$('#delSel').onclick = () => { if (!L || sel < 0) return; L.placed.splice(sel, 1); sel = -1; E.refresh(L); drawMold(); report(); };
+document.addEventListener('keydown', (e) => {
+  if (!$('#v-plan').classList.contains('on') || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if (e.key === 'r' || e.key === 'R') rotateSel(e.shiftKey ? -15 : 15);
+  if (e.key === 'Delete' || e.key === 'Backspace') $('#delSel').click();
+});
+
+function report() {
+  const box = $('#report');
+  if (!L) { box.innerHTML = '<div class="empty">Add models, then press <b>Lay out mold</b>.</div>'; return; }
+  const m = metalOf(), prm = L.prm;
+  const per = new Map();
+  L.placed.forEach(i => per.set(i.part.name, (per.get(i.part.name) || 0) + 1));
+  const fails = new Map(); L.failed.forEach(o => fails.set(o.part.name, (fails.get(o.part.name) || 0) + 1));
+  let h = `<div class="stats">
+    <div class="stat"><b>${L.placed.length}</b><span>cavities in a ${prm.moldDia}" mold</span></div>
+    <div class="stat"><b>${L.cavityMass.toFixed(0)} g</b><span>metal in cavities (${(L.cavityMass / 28.35).toFixed(1)} oz)</span></div>
+    <div class="stat"><b>≈ ${L.pourMass.toFixed(0)} g</b><span>suggested pour (${(L.pourMass / 28.35).toFixed(1)} oz) incl. spokes &amp; basin</span></div>
+    <div class="stat"><b>${L.imbalance.toFixed(1)} mm</b><span>centre-of-mass offset (0 = balanced)</span></div>
+    <div class="stat"><b>${m.pourF}°F</b><span>pour range for ${esc(m.name.split('(')[0].trim())} · ≥ ${m.liquidusF + 50}°F</span></div>
+  </div>`;
+  if (fails.size) h += `<div class="note warn"><b>Didn't fit:</b> ${[...fails].map(([n, c]) => `${c}× ${esc(n)}`).join(', ')}. Try fewer copies, a larger mold, less spacing, or a smaller "closest to centre".</div>`;
+  for (const w of L.warnings || []) h += `<div class="note bad">${esc(w)}</div>`;
+  h += `<table><thead><tr><th>#</th><th>Part</th><th>Weight</th><th>Ingate slot (start)</th><th>At gate</th><th>Vents</th></tr></thead><tbody>`;
+  L.placed.forEach((i, k) => {
+    const g = i.gate, vc = (i.vents || []), drill = vc.filter(v => v.drilled || !v.path).length;
+    const kinds = { gate: 0, main: 0, tip: 0 }; vc.forEach(v => kinds[v.kind]++);
+    h += `<tr style="cursor:pointer" data-k="${k}"><td class="num">${k + 1}</td><td>${esc(i.part.name)}</td><td class="num">${i.mass.toFixed(1)} g</td>`;
+    h += g ? `<td class="num">${g.slotW.toFixed(1)} × ${g.slotD.toFixed(1)} mm<br><span class="hint">${fmtIn(g.slotW)} × ${fmtIn(g.slotD)}</span></td><td class="num">${g.t.toFixed(2)} mm (${Math.round(g.thick * 100)}%)<br><span class="hint">${g.localW.toFixed(1)} mm wide</span></td>` : `<td colspan="2">—</td>`;
+    h += `<td>${kinds.gate ? kinds.gate + ' beside gate' : ''}${kinds.main ? ', 1 main' : ''}${kinds.tip ? `, ${kinds.tip} at points` : ''}${drill ? `<br><span class="hint">${drill} drill-through</span>` : ''}</td></tr>`;
+  });
+  h += `</tbody></table>`;
+  h += `<p class="hint" style="margin-top:10px">Gate slots are starting sizes from the part's thickness and width at the gate and the metal's gate factor. Cut small, trial cast, then enlarge. The drawing shows the bottom half face-up; the top half is its mirror image.</p>`;
+  box.innerHTML = h;
+  box.querySelectorAll('tr[data-k]').forEach(tr => tr.onclick = () => { sel = +tr.dataset.k; drawMold(); });
+}
+function cutList() {
+  const prm = L.prm, m = metalOf();
+  let s = `Spin mold plan — ${prm.moldDia}" mold, ${m.name}\nCavities: ${L.placed.length} · cavity metal ${L.cavityMass.toFixed(0)} g · suggested pour ≈ ${L.pourMass.toFixed(0)} g · pour ${m.pourF}°F\n\n`;
+  L.placed.forEach((i, k) => {
+    const g = i.gate;
+    s += `#${k + 1} ${i.part.name} (${i.mass.toFixed(1)} g): ` + (g ? `ingate ${g.slotW.toFixed(1)}×${g.slotD.toFixed(1)} mm at ${fmtIn(g.r)} from centre; ` : 'no gate; ') +
+      (i.vents || []).map(v => v.kind === 'gate' ? 'gate vent' : v.kind === 'main' ? 'main vent' : 'point vent').join(', ') + '\n';
+  });
+  if (L.failed.length) s += `\nDidn't fit: ${L.failed.length}\n`;
+  return s;
+}
+$('#copyList').onclick = async () => { try { await navigator.clipboard.writeText(cutList()); toast('Cut list copied'); } catch (e) { toast('Copy was blocked by the browser'); } };
+async function saveBlob(blob, filename) {
+  try {
+    if (window.claude && window.claude.use) {
+      const dl = await window.claude.use('downloads');
+      if (dl) { await dl.save({ filename, data: blob }); return; }
+    }
+  } catch (e) { if (e && e.code && e.code !== 'unavailable') { toast('Save cancelled'); return; } }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+function wrapLines(g, text, maxW) {
+  const words = text.split(' '), lines = []; let cur = '';
+  for (const w of words) { const t = cur ? cur + ' ' + w : w; if (g.measureText(t).width > maxW && cur) { lines.push(cur); cur = w; } else cur = t; }
+  if (cur) lines.push(cur); return lines;
+}
+$('#exportPng').onclick = () => {
+  const size = 2000, pad = 60, why = $('#showWhy').checked;
+  // build the explanation text blocks
+  const blocks = [];
+  blocks.push({ h: `${L.prm.moldDia}" spin mold · ${metalOf().name} · ${L.placed.length} cavities`, big: true });
+  blocks.push({ p: `Cavity metal ${L.cavityMass.toFixed(0)} g · suggested pour ≈ ${L.pourMass.toFixed(0)} g · pour ${metalOf().pourF}°F. Grey = basin, spokes, gates. Orange = vent wedges and channels. Tags: G gate vent, M main vent, P point vent, D drill-through to the back.` });
+  if (why) {
+    blocks.push({ h: 'Why it is laid out this way' });
+    E.explainLayout(L).forEach(s => blocks.push({ li: s }));
+    const seen = new Set();
+    L.placed.forEach((inst, k) => {
+      if (seen.has(inst.part)) return; seen.add(inst.part);
+      const nums = L.placed.map((q, j) => q.part === inst.part ? '#' + (j + 1) : null).filter(Boolean).join(', ');
+      const ex = E.explain(inst, L);
+      blocks.push({ h: `${inst.part.name} (${nums})` });
+      ex.orient.forEach(s => blocks.push({ li: 'Orientation: ' + s }));
+      ex.gate.forEach(s => blocks.push({ li: 'Gate: ' + s }));
+      const kinds = [...new Set(ex.vents.map(v => v.kind))];
+      kinds.forEach(kd => { const v = ex.vents.find(x => x.kind === kd); blocks.push({ li: v.text }); });
+    });
+  }
+  const meas = document.createElement('canvas').getContext('2d');
+  let th = pad;
+  const lay = blocks.map(b => {
+    const fs = b.big ? 44 : b.h ? 32 : 26;
+    meas.font = `${b.h ? 600 : 400} ${fs}px "IBM Plex Sans",sans-serif`;
+    const lines = wrapLines(meas, b.h || b.p || b.li, size - 2 * pad - (b.li ? 34 : 0));
+    const hgt = lines.length * fs * 1.35 + (b.h ? 14 : 8) + (b.h && !b.big ? 18 : 0);
+    const o = { b, fs, lines, y: th }; th += hgt; return o;
+  });
+  const c = document.createElement('canvas'); c.width = size; c.height = size + th + pad;
+  const g = c.getContext('2d');
+  drawLayout(g, size, L, { vents: $('#showVents').checked, nums: true, bg: '#ffffff', kindTags: true, explain: why, sel });
+  g.fillStyle = '#fff'; g.fillRect(0, size, size, th + pad);
+  g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+  for (const o of lay) {
+    const b = o.b; let y = size + o.y + (b.h && !b.big ? 18 : 0);
+    g.font = `${b.h ? 600 : 400} ${o.fs}px "IBM Plex Sans",sans-serif`; g.fillStyle = b.h ? '#1f2328' : '#3d4247';
+    o.lines.forEach((ln, i) => { y += o.fs * 1.35; if (b.li && i === 0) { g.fillText('•', pad, y); } g.fillText(ln, pad + (b.li ? 34 : 0), y); });
+  }
+  c.toBlob(b => saveBlob(b, `spin-mold-${L.prm.moldDia}in.png`), 'image/png');
+};
+
+// ================= FIX =================
+const fx = { z: 1, pan: [0, 0], it: null, theta: 0, gate: null, un: null, tool: 'gate', photos: [], ph: null, phOp: 0.6, phSc: 1, phRot: 0, phX: 0, phY: 0, out: null, view: null };
+const fixCv = $('#fixCanvas'), fctx = fixCv.getContext('2d');
+function syncFixParts() {
+  const s = $('#fixPart'), v = s.value; s.innerHTML = '<option value="">— choose a model —</option>';
+  lib.forEach(it => { const o = document.createElement('option'); o.value = it.id; o.textContent = it.name; s.appendChild(o); });
+  if (lib.some(it => String(it.id) === v)) s.value = v; else if (fx.it && lib.includes(fx.it)) s.value = fx.it.id; else if (lib.length && !fx.it) { s.value = lib[0].id; setFixPart(lib[0]); }
+}
+function setFixPart(it) {
+  fx.it = it; fx.gate = null; fx.out = null;
+  fx.un = it ? new Uint8Array(it.part.W * it.part.H) : null;
+  if (it) { fx.theta = 0; $('#fixRot').value = 0; }
+  diag(); drawFix();
+}
+$('#fixPart').onchange = () => setFixPart(lib.find(it => String(it.id) === $('#fixPart').value) || null);
+wireDrop($('#fixDrop'), $('#fixFile'), (fs) => readFiles(fs, (it) => { syncFixParts(); $('#fixPart').value = it.id; setFixPart(it); }));
+$('#fixMetal').onchange = () => diag();
+const setRot = (d) => { d = ((d + 540) % 360) - 180; $('#fixRot').value = d; fx.theta = d * Math.PI / 180; $('#rotVal').textContent = d + '°'; diag(); drawFix(); };
+$('#fixRot').oninput = () => setRot(+$('#fixRot').value);
+$('#fixRotM').onclick = () => setRot(+$('#fixRot').value - 90); $('#fixRotP').onclick = () => setRot(+$('#fixRot').value + 90);
+$('#fixInner').onchange = () => { diag(); drawFix(); };
+document.querySelectorAll('#tools button').forEach(b => b.onclick = () => { fx.tool = b.dataset.t; document.querySelectorAll('#tools button').forEach(x => x.classList.toggle('on', x === b)); });
+$('#clearPaint').onclick = () => { if (fx.un) fx.un.fill(0); fx.gate = null; diag(); drawFix(); };
+document.querySelectorAll('[data-s]').forEach(c => c.onchange = () => diag());
+// photos
+wireDrop($('#photoDrop'), $('#photoFile'), (fs) => {
+  [...fs].forEach(f => { if (!f.type.startsWith('image/')) return; const url = URL.createObjectURL(f); const img = new Image(); img.onload = () => { fx.photos.push(img); if (!fx.ph) pickPhoto(img); renderPhotos(); }; img.src = url; });
+});
+function renderPhotos() {
+  const box = $('#photos'); box.innerHTML = '';
+  fx.photos.forEach(img => { const t = document.createElement('img'); t.src = img.src; t.className = img === fx.ph ? 'on' : ''; t.onclick = () => { pickPhoto(fx.ph === img ? null : img); renderPhotos(); }; box.appendChild(t); });
+  $('#photoCtl').style.display = fx.ph ? 'block' : 'none';
+}
+function pickPhoto(img) {
+  fx.ph = img;
+  if (img && fx.view) { // fit photo so it spans ~ the canvas
+    fx.phSc = Math.min(fixCv.width / img.width, fixCv.height / img.height) / fx.view.S; $('#phSc').max = fx.phSc * 6; $('#phSc').min = fx.phSc / 6; $('#phSc').step = fx.phSc / 200; $('#phSc').value = fx.phSc;
+    fx.phX = fx.view.cx; fx.phY = fx.view.cy;
+  }
+  drawFix();
+}
+$('#phOp').oninput = () => { fx.phOp = +$('#phOp').value; drawFix(); };
+$('#phSc').oninput = () => { fx.phSc = +$('#phSc').value; drawFix(); };
+$('#phRot').oninput = () => { fx.phRot = +$('#phRot').value * Math.PI / 180; drawFix(); };
+
+function fixFrame() {
+  // map part local -> diagram world (centre at origin, up), then fit to canvas
+  return E.frameFor(fx.it.part, fx.theta, +$('#fixInner').value * IN);
+}
+function diag() {
+  const box = $('#diagOut');
+  if (!fx.it) { box.innerHTML = '<p class="hint">Choose a model to start.</p>'; $('#nextCard').style.display = 'none'; return; }
+  const sym = new Set([...document.querySelectorAll('[data-s]')].filter(c => c.checked).map(c => c.dataset.s));
+  const any = fx.un && fx.un.some(v => v);
+  fx.out = E.diagnose({ part: fx.it.part, theta: fx.theta, innerR: +$('#fixInner').value * IN, gate: fx.gate, unfilled: any ? fx.un : null, symptoms: sym }, METALS[$('#fixMetal').value]);
+  const o = fx.out;
+  let h = '';
+  if (!fx.gate) h += `<div class="note">Click on the outline where the gate enters the cavity. The diagnosis needs it.</div>`;
+  if (!any && !sym.size) h += `<div class="note">Then paint the area that didn't fill, using the photo underlay as a guide if you like.</div>`;
+  if (o.cause) h += `<h3>${esc(o.cause)}</h3>`;
+  for (const f of o.facts) h += `<div class="hint">${esc(f)}</div>`;
+  for (const n of o.notes) if (!/Paint the unfilled/.test(n.text)) h += `<div class="note ${n.lvl}">${esc(n.text)}</div>`;
+  if (o.steps.length) {
+    h += `<h3 style="margin-top:12px">Fix the existing mold, in this order</h3><ol class="steps">`;
+    for (const s of o.steps) h += `<li><b>${esc(s.t)}</b>${esc(s.d)}</li>`;
+    h += `</ol><p class="hint">Trial cast a few warm spins between each step. Stop as soon as it fills.</p>`;
+  }
+  box.innerHTML = h;
+  nextTime();
+  drawFix();
+}
+function nextTime() {
+  const it = fx.it; if (!it) return;
+  $('#nextCard').style.display = 'block';
+  const prm = { ...params(), metalObj: METALS[$('#fixMetal').value] };
+  let NL;
+  try { NL = E.layout([{ part: it.part, qty: 2 }], prm); } catch (e) { return; }
+  const inst = NL.placed[0];
+  fx.next = NL; nview.z = 1; nview.cx = nview.cy = 0;
+  if (inst) { const c = E.toW(inst.P, inst.part.cx, inst.part.cy); nview.z = Math.min(12, Math.max(1, (NL.R * 2) / (inst.part.len * 2.4))); nview.cx = c[0] * 0.8; nview.cy = c[1] * 0.8; }
+  drawNext();
+  let t = '';
+  if (!inst) { t = `<div class="note warn">This part doesn't fit radially in a ${prm.moldDia}" mold with the current settings (Plan tab).</div>`; }
+  else {
+    const g0 = inst.gate, vents = inst.vents || [];
+    t += `<p>Two copies placed opposite each other for balance. Long axis runs out from the centre.</p><ul>`;
+    if (g0) t += `<li><b>Gate</b> into the ${g0.thick >= 0.95 ? 'thickest' : 'heaviest'} section, ${g0.t.toFixed(2)} mm thick and ${g0.localW.toFixed(1)} mm wide. Start the slot around ${g0.slotW.toFixed(1)} × ${g0.slotD.toFixed(1)} mm.</li>`;
+    const gv = vents.filter(v => v.kind === 'gate').length, mv = vents.filter(v => v.kind === 'main').length, tv = vents.filter(v => v.kind === 'tip').length;
+    t += `<li><b>Vents:</b> ${gv} beside the gate${mv ? ', a main vent on the centre line' : ''}${tv ? `, and ${tv} at points that face the centre` : ''}.</li>`;
+    if (fx.out && fx.out.thinGate) t += `<li>Unlike the current mold, this keeps the gate off the thin feature.</li>`;
+    t += `</ul><p class="hint">Open the Plan tab to lay out a full mold with this part.</p>`;
+  }
+  $('#nextText').innerHTML = t;
+}
+const nview = { z: 1, cx: 0, cy: 0 }; let nvRes = null;
+function drawNext() { const cv = $('#nextCanvas'); if (!fx.next) return; nvRes = drawLayout(cv.getContext('2d'), cv.width, fx.next, { nums: false, explain: true, sel: fx.next.placed.length ? 0 : -1, view: nview, u: cv.width / (cv.clientWidth || cv.width) * 0.95 }); }
+(() => {
+  const cv = $('#nextCanvas'); let pd = null;
+  cv.addEventListener('wheel', (e) => { if (!nvRes) return; e.preventDefault(); const [x, y] = canvasXY(cv, e); zoomAt(nview, cv, x, y, Math.exp(-e.deltaY * 0.0015), nvRes, drawNext); }, { passive: false });
+  cv.addEventListener('pointerdown', (e) => { pd = { p: canvasXY(cv, e), cx: nview.cx, cy: nview.cy }; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove', (e) => { if (!pd || nview.z <= 1) return; const p = canvasXY(cv, e); nview.cx = pd.cx - (p[0] - pd.p[0]) / nvRes.S; nview.cy = pd.cy - (p[1] - pd.p[1]) / nvRes.S; drawNext(); });
+  cv.addEventListener('pointerup', () => pd = null);
+  cv.addEventListener('dblclick', () => { nview.z = 1; nview.cx = nview.cy = 0; drawNext(); });
+})();
+function drawFix() {
+  const W = fixCv.width, H = fixCv.height, g = fctx;
+  g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = '#2a2c30'; g.fillRect(0, 0, W, H);
+  $('#rotVal').textContent = Math.round(fx.theta * 180 / Math.PI) + '°'; $('#fzVal').textContent = Math.round(fx.z * 100) + '%';
+  if (!fx.it) { g.fillStyle = '#aaa'; g.font = '28px "IBM Plex Sans"'; g.textAlign = 'center'; g.fillText('Choose a model', W / 2, H / 2); return; }
+  const p = fx.it.part, P = fixFrame();
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+  for (const b of p.bnd) { const w = E.toW(P, b[0], b[1]); x0 = Math.min(x0, w[0]); x1 = Math.max(x1, w[0]); y0 = Math.min(y0, w[1]); y1 = Math.max(y1, w[1]); }
+  const S = Math.min(W * 0.78 / (x1 - x0), H * 0.72 / (y1 - y0)) * fx.z, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  const ox = W / 2 - cx * S + fx.pan[0], oy = H * 0.55 - cy * S + fx.pan[1];
+  fx.view = { S, ox, oy, cx, cy, P };
+  const Q = (x, y) => [ox + x * S, oy + y * S];
+  // photo underlay
+  if (fx.ph) {
+    g.save(); g.globalAlpha = fx.phOp;
+    const q = Q(fx.phX, fx.phY); g.translate(q[0], q[1]); g.rotate(fx.phRot); const sc = fx.phSc * S;
+    g.drawImage(fx.ph, -fx.ph.width * sc / 2, -fx.ph.height * sc / 2, fx.ph.width * sc, fx.ph.height * sc);
+    g.restore();
+  }
+  // centre arrow
+  g.fillStyle = 'rgba(255,255,255,.75)'; g.font = '500 30px "IBM Plex Sans",sans-serif'; g.textAlign = 'center';
+  g.fillText('▲ toward mold centre', W / 2, 40);
+  // part
+  g.save(); g.globalAlpha = fx.ph ? 0.55 : 1;
+  g.setTransform(S * P.c, S * P.s, -S * P.s, S * P.c, ox + S * P.ox, oy + S * P.oy);
+  g.drawImage(partImage(fx.it), -p.res / 2, -p.res / 2, p.W * p.res, p.H * p.res);
+  g.restore();
+  // outline (always visible over photo)
+  g.fillStyle = '#ffe9a8';
+  for (const b of p.bnd) { const w = E.toW(P, b[0], b[1]), q = Q(w[0], w[1]); g.fillRect(q[0] - 1, q[1] - 1, 2, 2); }
+  // unfilled overlay
+  if (fx.un) {
+    if (!fx.unImg || fx.unImg.width !== p.W) { fx.unImg = document.createElement('canvas'); fx.unImg.width = p.W; fx.unImg.height = p.H; }
+    const c2 = fx.unImg.getContext('2d'), id = c2.createImageData(p.W, p.H);
+    for (let i = 0; i < fx.un.length; i++) if (fx.un[i]) { id.data[i * 4] = 214; id.data[i * 4 + 1] = 60; id.data[i * 4 + 2] = 40; id.data[i * 4 + 3] = 185; }
+    c2.putImageData(id, 0, 0);
+    g.save(); g.setTransform(S * P.c, S * P.s, -S * P.s, S * P.c, ox + S * P.ox, oy + S * P.oy); g.imageSmoothingEnabled = false;
+    g.drawImage(fx.unImg, -p.res / 2, -p.res / 2, p.W * p.res, p.H * p.res); g.restore();
+  }
+  const o = fx.out;
+  const QL = (l) => { const w = E.toW(P, l[0], l[1]); return Q(w[0], w[1]); };
+  // regate suggestion
+  if (o && o.regate) {
+    const q = QL(o.regate.l); g.strokeStyle = '#2e8b57'; g.fillStyle = '#2e8b57'; g.lineWidth = 5;
+    g.beginPath(); g.moveTo(q[0], Math.max(60, q[1] - 140)); g.lineTo(q[0], q[1] - 14); g.stroke();
+    g.beginPath(); g.arc(q[0], q[1], 11, 0, 7); g.fill();
+    g.font = '600 24px "IBM Plex Sans",sans-serif'; g.textAlign = 'center'; g.fillText(o.regate.side ? 'better gate (side gate)' : 'better gate', q[0], Math.max(56, q[1] - 148));
+  }
+  // vents
+  if (o) for (const v of o.vents) {
+    if (v.gateVents && fx.gate) {
+      const q = QL(fx.gate);
+      for (const sd of [-1, 1]) wedge(g, [q[0] + sd * 18, q[1] - 4], [sd * 0.7, -0.7]);
+      continue;
+    }
+    const q = QL(v.l), d = outwardScreen(v.l, P);
+    if (v.kind === 'drilled') { g.strokeStyle = '#f08a24'; g.lineWidth = 4; g.fillStyle = '#fff'; g.beginPath(); g.arc(q[0], q[1], 11, 0, 7); g.fill(); g.stroke(); continue; }
+    wedge(g, q, d);
+  }
+  // user gate
+  if (fx.gate) { const q = QL(fx.gate); g.fillStyle = '#2f6f8f'; g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.arc(q[0], q[1], 12, 0, 7); g.fill(); g.stroke(); g.fillStyle = '#fff'; g.font = '600 15px "IBM Plex Sans",sans-serif'; g.textAlign = 'center'; g.fillText('G', q[0], q[1] + 5); }
+}
+function wedge(g, q, d) {
+  const L = 46, n = [-d[1], d[0]];
+  g.fillStyle = '#f08a24'; g.beginPath(); g.moveTo(q[0], q[1]); g.lineTo(q[0] + d[0] * L + n[0] * 12, q[1] + d[1] * L + n[1] * 12); g.lineTo(q[0] + d[0] * L - n[0] * 12, q[1] + d[1] * L - n[1] * 12); g.closePath(); g.fill();
+  g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke();
+}
+function outwardScreen(l, P) {
+  const p = fx.it.part; let sx = 0, sy = 0;
+  for (let a = 0; a < 16; a++) { const an = a * Math.PI / 8, x = l[0] + Math.cos(an) * 1.2, y = l[1] + Math.sin(an) * 1.2; if (!p.at(x, y)) { sx += Math.cos(an); sy += Math.sin(an); } }
+  const w0 = E.toW(P, 0, 0), w1 = E.toW(P, sx, sy); let dx = w1[0] - w0[0], dy = w1[1] - w0[1]; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m;
+  if (!sx && !sy) { dx = 0; dy = -1; }
+  return [dx, dy];
+}
+// fix canvas interaction
+let fdrag = null;
+function fixEv(e) { const r = fixCv.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * fixCv.width, y = (e.clientY - r.top) / r.height * fixCv.height; const v = fx.view; const w = [(x - v.ox) / v.S, (y - v.oy) / v.S]; return { w, l: E.toL(v.P, w[0], w[1]) }; }
+function paintAt(l, val) {
+  const p = fx.it.part, r = +$('#brush').value, rc = Math.ceil(r / p.res);
+  const cx = Math.round(l[0] / p.res), cy = Math.round(l[1] / p.res);
+  for (let y = cy - rc; y <= cy + rc; y++) for (let x = cx - rc; x <= cx + rc; x++) {
+    if (x < 0 || y < 0 || x >= p.W || y >= p.H) continue; if ((x - cx) ** 2 + (y - cy) ** 2 > rc * rc) continue;
+    const i = y * p.W + x; if (p.mask[i]) fx.un[i] = val;
+  }
+}
+fixCv.addEventListener('pointerdown', (e) => {
+  if (!fx.it || !fx.view) return; const ev = fixEv(e); fixCv.setPointerCapture(e.pointerId);
+  if (fx.tool === 'gate') {
+    // snap to nearest boundary point
+    let best = null, bd = 1e9; for (const b of fx.it.part.bnd) { const d = Math.hypot(b[0] - ev.l[0], b[1] - ev.l[1]); if (d < bd) { bd = d; best = b; } }
+    if (best && bd < 6) { fx.gate = [best[0], best[1]]; diag(); } else toast('Click on the outline of the part');
+    return;
+  }
+  if (fx.tool === 'photo') { if (fx.ph) fdrag = { w: ev.w, x: fx.phX, y: fx.phY }; return; }
+  if (fx.tool === 'pan' || e.button === 1) { fdrag = { pan: canvasXY(fixCv, e), p0: [...fx.pan] }; return; }
+  fdrag = { paint: true }; paintAt(ev.l, fx.tool === 'paint' ? 1 : 0); drawFix();
+});
+fixCv.addEventListener('pointermove', (e) => {
+  if (!fdrag) return; const ev = fixEv(e);
+  if (fdrag.pan) { const p = canvasXY(fixCv, e); fx.pan = [fdrag.p0[0] + p[0] - fdrag.pan[0], fdrag.p0[1] + p[1] - fdrag.pan[1]]; drawFix(); return; }
+  if (fdrag.paint) { paintAt(ev.l, fx.tool === 'paint' ? 1 : 0); drawFix(); }
+  else { fx.phX = fdrag.x + ev.w[0] - fdrag.w[0]; fx.phY = fdrag.y + ev.w[1] - fdrag.w[1]; drawFix(); }
+});
+fixCv.addEventListener('pointerup', () => { if (fdrag && fdrag.paint) diag(); fdrag = null; });
+
+function fixZoom(f, sx, sy) {
+  if (!fx.view) return;
+  sx = sx ?? fixCv.width / 2; sy = sy ?? fixCv.height / 2;
+  const nz = Math.max(1, Math.min(16, fx.z * f)); if (nz === fx.z) return;
+  const wx = (sx - fx.view.ox) / fx.view.S, wy = (sy - fx.view.oy) / fx.view.S;
+  fx.z = nz; fx.pan = [0, 0]; drawFix();
+  // shift so the same world point stays under the cursor
+  fx.pan = [sx - (fx.view.ox + wx * fx.view.S), sy - (fx.view.oy + wy * fx.view.S)];
+  if (nz === 1) fx.pan = [0, 0];
+  drawFix();
+}
+fixCv.addEventListener('wheel', (e) => { e.preventDefault(); const [x, y] = canvasXY(fixCv, e); fixZoom(Math.exp(-e.deltaY * 0.0015), x, y); }, { passive: false });
+$('#fzIn').onclick = () => fixZoom(1.5); $('#fzOut').onclick = () => fixZoom(1 / 1.5); $('#fzFit').onclick = () => { fx.z = 1; fx.pan = [0, 0]; drawFix(); };
+// ---------- init ----------
+fillMetalSelects(); renderMetalTable(); refreshParts(); drawMold(); diag();
+if (typeof EXAMPLES === 'undefined') $('#loadExample').style.display = 'none';
+})();
+</script>
+</body>
+</html>

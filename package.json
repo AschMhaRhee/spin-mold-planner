@@ -1,0 +1,14 @@
+{
+  "name": "spin-mold-planner",
+  "version": "0.1.0",
+  "description": "Plan spin-casting (centrifugal rubber mold) layouts: placement, gates and vents, plus a rules-based helper for fixing short fills. Runs entirely in the browser.",
+  "license": "MIT",
+  "repository": "https://github.com/AschMhaRhee/spin-mold-planner",
+  "keywords": ["spin casting", "centrifugal casting", "pewter", "zinc", "mold making", "gating", "venting", "miniatures"],
+  "scripts": {
+    "build": "node build.js",
+    "test": "node --test test/*.test.js",
+    "examples": "node examples/make-examples.js"
+  },
+  "engines": { "node": ">=18" }
+}
